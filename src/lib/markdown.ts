@@ -44,246 +44,272 @@ export function preprocessMarkdown(content: string) {
 
 /**
  * Apply layout transformations to the DOM when a theme has layout rules.
- * This restructures the DOM (wrap, add decorators) before color application.
+ * Creates structural DOM changes (wrap elements, add decorators, transform sections)
+ * so that each theme has a truly distinct visual identity — not just color changes.
  */
 function applyLayoutTransform(doc: Document, layout: ThemeLayout, colors: ThemeColors) {
-    const spacing = layout.spacing;
+    const s = layout.spacing;
+    const pad = s.contentPadding || { left: 25, right: 25 };
 
-    // ── H1: Color-block decoration ──
-    if (layout.h1.decor === 'color-block') {
-        doc.querySelectorAll('h1').forEach(h1 => {
+    // ═══════════════════════════════════════════════
+    // H1 — 3 decoration styles
+    // ═══════════════════════════════════════════════
+
+    doc.querySelectorAll('h1').forEach(h1 => {
+        const decor = layout.h1.decor || 'none';
+
+        if (decor === 'color-block') {
+            // ▸ Full-width background card with generous padding
             const card = doc.createElement('div');
-            const h1Color = layout.h1.decorColor || colors.accent;
-            const bg = layout.h1.decorBg || colors.accent + '10';
-            const radius = (layout.h1.decorRadius ?? 0) + 'px';
-            const align = layout.h1.align || 'left';
+            const accent = layout.h1.decorColor || colors.accent;
+            const bg = layout.h1.decorBg || colors.accent + '15';
             card.setAttribute('style', [
                 `background-color: ${bg}`,
-                `padding: 32px 28px`,
-                `margin: ${spacing.sectionGap}px 0 ${spacing.paragraphGap}px 0`,
-                `border-radius: ${radius}`,
-                `text-align: ${align}`,
-                layout.h1.decorWidth && layout.h1.decorWidth > 0
-                    ? `border-left: ${layout.h1.decorWidth}px solid ${h1Color}`
-                    : '',
-            ].filter(Boolean).join('; '));
+                `padding: 40px 32px 36px 32px`,
+                `margin: ${s.sectionGap + 8}px 0 ${s.sectionGap}px 0`,
+                `text-align: ${layout.h1.align || 'left'}`,
+                `position: relative`,
+            ].join('; '));
+            // Accent top bar
+            const bar = doc.createElement('div');
+            bar.setAttribute('style', `position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: ${accent};`);
+            card.appendChild(bar);
             h1.parentNode?.insertBefore(card, h1);
             card.appendChild(h1);
-            // Reset h1 margins since card handles spacing
-            h1.setAttribute('style', (h1.getAttribute('style') || '') + '; margin: 0 !important; border: none !important;');
-        });
-    }
-
-    // ── H1: Left-bar decoration ──
-    if (layout.h1.decor === 'left-bar') {
-        doc.querySelectorAll('h1').forEach(h1 => {
+            h1.setAttribute('style', (h1.getAttribute('style') || '') + '; margin: 0 !important; padding: 0 !important; border: none !important;');
+        } else if (decor === 'left-bar') {
             const color = layout.h1.decorColor || colors.accent;
-            const w = layout.h1.decorWidth || 4;
-            const current = h1.getAttribute('style') || '';
-            h1.setAttribute('style', `${current}; border-left: ${w}px solid ${color}; padding-left: ${w + 8}px; margin-left: 0;`);
-        });
-    }
-
-    // ── H1: Underline decoration ──
-    if (layout.h1.decor === 'underline') {
-        doc.querySelectorAll('h1').forEach(h1 => {
-            const color = layout.h1.decorColor || colors.accent;
-            const current = h1.getAttribute('style') || '';
-            h1.setAttribute('style', `${current}; border-bottom: 2px solid ${color}; padding-bottom: 8px;`);
-        });
-    }
-
-    // ── H2: Left-bar / Colored-text ──
-    doc.querySelectorAll('h2').forEach(h2 => {
-        const decor = layout.h2.decor || 'none';
-        const color = layout.h2.decorColor || colors.accent;
-        const w = layout.h2.decorWidth || 4;
-        const current = h2.getAttribute('style') || '';
-        if (decor === 'left-bar') {
-            h2.setAttribute('style', `${current}; border-left: ${w}px solid ${color}; padding-left: ${w + 8}px;`);
-        } else if (decor === 'colored-text') {
-            h2.setAttribute('style', `${current}; color: ${color} !important;`);
+            const w = layout.h1.decorWidth || 5;
+            const cur = h1.getAttribute('style') || '';
+            h1.setAttribute('style', `${cur}; border-left: ${w}px solid ${color}; padding-left: ${w + 12}px; margin-top: ${s.sectionGap}px;`);
         } else if (decor === 'underline') {
-            h2.setAttribute('style', `${current}; border-bottom: 2px solid ${color}; padding-bottom: 6px;`);
+            const color = layout.h1.decorColor || colors.accent;
+            const cur = h1.getAttribute('style') || '';
+            h1.setAttribute('style', `${cur}; border-bottom: 3px solid ${color}; padding-bottom: 10px; margin-top: ${s.sectionGap}px;`);
         }
     });
 
-    // ── H3: Left-bar / Colored-text ──
+    // ═══════════════════════════════════════════════
+    // H2 — 3 decoration styles
+    // ═══════════════════════════════════════════════
+
+    doc.querySelectorAll('h2').forEach(h2 => {
+        const decor = layout.h2.decor || 'none';
+        const color = layout.h2.decorColor || colors.accent;
+        const w = layout.h2.decorWidth || 5;
+        const cur = h2.getAttribute('style') || '';
+        if (decor === 'left-bar') {
+            h2.setAttribute('style', `${cur}; border-left: ${w}px solid ${color}; padding-left: ${w + 12}px; margin-top: ${s.sectionGap}px;`);
+        } else if (decor === 'colored-text') {
+            h2.setAttribute('style', `${cur}; color: ${color} !important; margin-top: ${s.sectionGap}px;`);
+        } else if (decor === 'underline') {
+            h2.setAttribute('style', `${cur}; border-bottom: 2px solid ${color}; padding-bottom: 8px; margin-top: ${s.sectionGap}px; display: inline-block;`);
+        }
+    });
+
+    // ═══════════════════════════════════════════════
+    // H3
+    // ═══════════════════════════════════════════════
+
     doc.querySelectorAll('h3').forEach(h3 => {
         const decor = layout.h3.decor || 'none';
         const color = layout.h3.decorColor || colors.accentSecondary || colors.accent;
         const w = layout.h3.decorWidth || 3;
-        const current = h3.getAttribute('style') || '';
+        const cur = h3.getAttribute('style') || '';
         if (decor === 'left-bar') {
-            h3.setAttribute('style', `${current}; border-left: ${w}px solid ${color}; padding-left: ${w + 8}px;`);
+            h3.setAttribute('style', `${cur}; border-left: ${w}px solid ${color}; padding-left: ${w + 10}px;`);
         } else if (decor === 'colored-text') {
-            h3.setAttribute('style', `${current}; color: ${color} !important;`);
+            h3.setAttribute('style', `${cur}; color: ${color} !important;`);
         }
     });
 
-    // ── Callout / Blockquote ──
+    // ═══════════════════════════════════════════════
+    // Blockquote → Callout transformation
+    // ═══════════════════════════════════════════════
+
     const callout = layout.callout;
     if (callout.variant !== 'none') {
         doc.querySelectorAll('blockquote').forEach(bq => {
-            const current = bq.getAttribute('style') || '';
+            const cur = bq.getAttribute('style') || '';
+            const mt = callout.marginTop ?? s.sectionGap;
+            const mb = callout.marginBottom ?? s.sectionGap;
+            const p = callout.padding ?? 24;
             let extra = '';
+
             if (callout.variant === 'bg-card') {
-                extra = `background-color: ${callout.bgColor || colors.accent + '10'}; padding: ${callout.padding || 24}px; margin: ${callout.marginTop || 24}px 0 ${callout.marginBottom || 24}px 0; border-radius: ${callout.borderRadius ?? 0}px; border: none;`;
+                // Large colored background card
+                extra = [
+                    `background-color: ${callout.bgColor || colors.accent + '15'}`,
+                    `padding: ${p + 4}px ${p}px`,
+                    `margin: ${mt + 8}px 0 ${mb + 8}px 0`,
+                ].join('; ');
+                // Make inner <p> margins relaxed
+                bq.querySelectorAll('p').forEach(inner => {
+                    inner.setAttribute('style', (inner.getAttribute('style') || '') + `; margin: ${s.paragraphGap}px 0;`);
+                });
             } else if (callout.variant === 'left-border') {
-                extra = `border-left: ${callout.borderWidth || 4}px solid ${callout.borderColor || colors.accent}; padding: ${callout.padding || 16}px ${callout.padding || 16}px ${callout.padding || 16}px ${(callout.padding || 16) + 4}px; margin: ${callout.marginTop || 24}px 0 ${callout.marginBottom || 24}px 0; background-color: transparent;`;
+                // Bold left border, no bg
+                extra = [
+                    `border-left: ${callout.borderWidth || 5}px solid ${callout.borderColor || colors.accent}`,
+                    `padding: ${p}px ${p}px ${p}px ${(callout.borderWidth || 5) + p}px`,
+                    `margin: ${mt}px 0 ${mb}px 0`,
+                    `background-color: transparent`,
+                ].join('; ');
             } else if (callout.variant === 'subtle-card') {
-                extra = `background-color: ${callout.bgColor || colors.accent + '08'}; padding: ${callout.padding || 20}px; border-radius: ${callout.borderRadius ?? 0}px; margin: ${callout.marginTop || 24}px 0 ${callout.marginBottom || 24}px 0; border: none;`;
+                // Very subtle bg card
+                extra = [
+                    `background-color: ${callout.bgColor || colors.accent + '08'}`,
+                    `padding: ${p}px`,
+                    `margin: ${mt}px 0 ${mb}px 0`,
+                    `border: none`,
+                ].join('; ');
             }
-            bq.setAttribute('style', `${current}; ${extra}`);
+            bq.setAttribute('style', cur + '; ' + extra);
         });
     }
 
-    // ── Image styling ──
-    const imgLayout = layout.image;
+    // ═══════════════════════════════════════════════
+    // Images
+    // ═══════════════════════════════════════════════
+
+    const imgL = layout.image;
     doc.querySelectorAll('img').forEach(img => {
-        const inGrid = Boolean(img.closest('.image-grid'));
-        if (inGrid) return;
-        const current = img.getAttribute('style') || '';
-        const radius = (imgLayout.borderRadius ?? 0) + 'px';
-        const shadowStyle = imgLayout.shadow === 'subtle'
-            ? 'box-shadow: 0 4px 12px rgba(0,0,0,0.08);'
-            : imgLayout.shadow === 'medium'
-                ? 'box-shadow: 0 8px 24px rgba(0,0,0,0.12);'
-                : '';
-        img.setAttribute('style', `${current}; border-radius: ${radius}; ${shadowStyle}`.trim());
+        if (img.closest('.image-grid')) return;
+        const cur = img.getAttribute('style') || '';
+        const radius = (imgL.borderRadius ?? 0) + 'px';
+        let shadow = '';
+        if (imgL.shadow === 'subtle') shadow = 'box-shadow: 0 4px 16px rgba(0,0,0,0.08);';
+        else if (imgL.shadow === 'medium') shadow = 'box-shadow: 0 8px 28px rgba(0,0,0,0.14);';
+        img.setAttribute('style', `${cur}; border-radius: ${radius}; ${shadow}`.trim());
     });
 
-    // ── Image captions (find img in p, add figcaption) ──
-    if (imgLayout.caption?.enabled) {
+    // Image captions from alt text
+    if (imgL.caption?.enabled) {
         doc.querySelectorAll('p').forEach(p => {
             const imgs = p.querySelectorAll('img');
             if (imgs.length !== 1) return;
-            const img = imgs[0];
-            const alt = img.getAttribute('alt') || '';
+            const alt = imgs[0].getAttribute('alt') || '';
             if (!alt) return;
-            const captionColor = imgLayout.caption?.color || '#888888';
-            const captionSize = imgLayout.caption?.fontSize || 14;
-            const captionAlign = imgLayout.caption?.position === 'below-left' ? 'left' : 'center';
-            const caption = doc.createElement('div');
-            caption.setAttribute('style', `text-align: ${captionAlign}; font-size: ${captionSize}px; color: ${captionColor}; margin-top: 8px; margin-bottom: ${spacing.sectionGap}px; line-height: 1.5;`);
-            caption.textContent = alt;
-            p.parentNode?.insertBefore(caption, p.nextSibling);
+            const cap = doc.createElement('div');
+            cap.setAttribute('style', [
+                `text-align: ${imgL.caption?.position === 'below-left' ? 'left' : 'center'}`,
+                `font-size: ${imgL.caption?.fontSize || 14}px`,
+                `color: ${imgL.caption?.color || '#999'}`,
+                `margin-top: 6px`,
+                `margin-bottom: ${s.sectionGap}px`,
+                `line-height: 1.5`,
+            ].join('; '));
+            cap.textContent = alt;
+            p.parentNode?.insertBefore(cap, p.nextSibling);
         });
     }
 
-    // ── Full-bleed images: remove padding/margin constraints ──
-    if (imgLayout.fullBleed) {
-        doc.querySelectorAll('img').forEach(img => {
-            if (img.closest('.image-grid')) return;
-            const current = img.getAttribute('style') || '';
-            img.setAttribute('style', `${current}; width: 100%; max-width: 100%; margin-left: -${spacing.contentPadding?.left || 0}px; padding: 0;`.replace(/margin-left: -0px/g, 'margin-left: 0'));
-        });
-    }
+    // ═══════════════════════════════════════════════
+    // Spacing system
+    // ═══════════════════════════════════════════════
 
-    // ── Spacing: paragraph gaps ──
     doc.querySelectorAll('p').forEach(p => {
         if (p.closest('.image-grid')) return;
-        const current = p.getAttribute('style') || '';
-        p.setAttribute('style', `${current}; margin-top: ${spacing.paragraphGap}px; margin-bottom: ${spacing.paragraphGap}px; line-height: ${spacing.lineHeight};`);
+        const cur = p.getAttribute('style') || '';
+        p.setAttribute('style', `${cur}; margin-top: ${s.paragraphGap}px; margin-bottom: ${s.paragraphGap}px; line-height: ${s.lineHeight};`);
     });
 
-    // ── Section gap: add margin above h1/h2 ──
     doc.querySelectorAll('h2, h3').forEach(h => {
-        const current = h.getAttribute('style') || '';
-        if (!current.includes('margin-top')) {
-            h.setAttribute('style', `${current}; margin-top: ${spacing.sectionGap}px;`);
+        const cur = h.getAttribute('style') || '';
+        if (!cur.includes('margin-top') || cur.includes('margin-top: 40px')) {
+            h.setAttribute('style', `${cur}; margin-top: ${s.sectionGap}px;`);
         }
     });
 
-    // ── Divider (hr) ──
+    // ═══════════════════════════════════════════════
+    // Divider
+    // ═══════════════════════════════════════════════
+
     if (layout.divider) {
         doc.querySelectorAll('hr').forEach(hr => {
             const d = layout.divider!;
             hr.setAttribute('style', [
-                `margin: ${d.marginTop || 40}px auto ${d.marginBottom || 40}px auto`,
+                `margin: ${d.marginTop || 48}px 0 ${d.marginBottom || 48}px 0`,
                 `border: none`,
                 `height: ${d.height || 1}px`,
                 `background-color: ${d.color || '#e5e5e5'}`,
                 `width: 100%`,
-                d.style === 'dashed' ? 'border-top: 1px dashed ' + (d.color || '#e5e5e5') : '',
-            ].filter(Boolean).join('; '));
+            ].join('; '));
         });
     }
 
-    // ── Strong emphasis ──
+    // ═══════════════════════════════════════════════
+    // Bold / Strong emphasis
+    // ═══════════════════════════════════════════════
+
     if (layout.strong) {
-        const s = layout.strong;
+        const st = layout.strong;
         doc.querySelectorAll('strong').forEach(el => {
-            const current = el.getAttribute('style') || '';
+            const cur = el.getAttribute('style') || '';
             const parts: string[] = [];
-            if (s.color) parts.push(`color: ${s.color} !important`);
-            if (s.bgColor && s.bgColor !== 'transparent') parts.push(`background-color: ${s.bgColor}`);
-            if (s.padding) parts.push(`padding: ${s.padding}`);
-            if (s.borderRadius) parts.push(`border-radius: ${s.borderRadius}`);
+            if (st.color) parts.push(`color: ${st.color} !important`);
+            if (st.bgColor && st.bgColor !== 'transparent') {
+                parts.push(`background-color: ${st.bgColor}`);
+                parts.push(`padding: ${st.padding || '2px 6px'}`);
+                parts.push(`border-radius: ${st.borderRadius || '0'}`);
+            }
             if (parts.length > 0) {
-                el.setAttribute('style', `${current}; ${parts.join('; ')}`);
+                el.setAttribute('style', cur + '; ' + parts.join('; '));
             }
         });
     }
 
-    // ── Content padding wrapper ──
-    if (spacing.contentPadding) {
-        const body = doc.body;
-        const wrapper = doc.createElement('div');
-        wrapper.setAttribute('style', `padding: 0 ${spacing.contentPadding.right || 25}px 48px ${spacing.contentPadding.left || 25}px;`);
-        while (body.firstChild) {
-            wrapper.appendChild(body.firstChild);
-        }
-        body.appendChild(wrapper);
+    // ═══════════════════════════════════════════════
+    // Content padding — wrap all body children
+    // ═══════════════════════════════════════════════
+
+    const body = doc.body;
+    const wrapper = doc.createElement('div');
+    wrapper.setAttribute('style', `padding: 8px ${pad.right}px 48px ${pad.left}px; background-color: ${colors.pageBg};`);
+    while (body.firstChild) {
+        wrapper.appendChild(body.firstChild);
     }
+    body.appendChild(wrapper);
 }
 
 /**
- * Apply color tokens directly to the DOM.
- * Used alongside layout transformations for new-architecture themes.
+ * Apply color tokens from the theme's color palette.
  */
 function applyColors(doc: Document, colors: ThemeColors) {
-    // Body text color
     doc.querySelectorAll('p, li').forEach(el => {
-        const current = el.getAttribute('style') || '';
-        if (!current.includes('color:')) {
-            el.setAttribute('style', `${current}; color: ${colors.textPrimary};`);
+        const cur = el.getAttribute('style') || '';
+        if (!cur.includes('color:')) {
+            el.setAttribute('style', `${cur}; color: ${colors.textPrimary};`);
         }
     });
-
-    // Links
     doc.querySelectorAll('a').forEach(el => {
-        const current = el.getAttribute('style') || '';
-        if (!current.includes('color:')) {
-            el.setAttribute('style', `${current}; color: ${colors.linkColor}; border-bottom: 1px solid ${colors.linkColor};`);
+        const cur = el.getAttribute('style') || '';
+        if (!cur.includes('color:')) {
+            el.setAttribute('style', `${cur}; color: ${colors.linkColor}; border-bottom: 1px solid ${colors.linkColor}; text-decoration: none;`);
         }
     });
-
-    // Code
     doc.querySelectorAll('code').forEach(el => {
         if (el.parentElement?.tagName === 'PRE') return;
-        const current = el.getAttribute('style') || '';
-        el.setAttribute('style', `${current}; background-color: ${colors.codeBg || '#f5f5f5'}; color: ${colors.codeColor || colors.accent};`);
+        const cur = el.getAttribute('style') || '';
+        el.setAttribute('style', `${cur}; background-color: ${colors.codeBg || '#f5f5f5'}; color: ${colors.codeColor || colors.accent};`);
     });
-
-    // Pre
     doc.querySelectorAll('pre').forEach(el => {
-        const current = el.getAttribute('style') || '';
-        el.setAttribute('style', `${current}; background-color: ${colors.codeBg || '#f5f5f5'};`);
+        const cur = el.getAttribute('style') || '';
+        el.setAttribute('style', `${cur}; background-color: ${colors.codeBg || '#f5f5f5'};`);
     });
-
-    // Table
     doc.querySelectorAll('th').forEach(el => {
-        const current = el.getAttribute('style') || '';
-        el.setAttribute('style', `${current}; background-color: ${colors.tableHeaderBg || '#f5f5f5'};`);
+        const cur = el.getAttribute('style') || '';
+        el.setAttribute('style', `${cur}; background-color: ${colors.tableHeaderBg || '#f5f5f5'};`);
     });
     doc.querySelectorAll('td, th').forEach(el => {
-        const current = el.getAttribute('style') || '';
-        if (el.tagName === 'TD' && !current.includes('color:')) {
-            el.setAttribute('style', `${current}; color: ${colors.textPrimary};`);
+        let cur = el.getAttribute('style') || '';
+        if (el.tagName === 'TD' && !cur.includes('color:')) {
+            cur += `; color: ${colors.textPrimary}`;
         }
-        el.setAttribute('style', `${el.getAttribute('style') || ''}; border-color: ${colors.tableBorder || '#e5e5e5'};`);
+        el.setAttribute('style', `${cur}; border-color: ${colors.tableBorder || '#e5e5e5'};`);
     });
+    // Ensure body inherits correct bg
+    doc.body.setAttribute('style', `background-color: ${colors.pageBg}; margin: 0; padding: 0;`);
 }
 
 export function applyTheme(html: string, themeId: string) {
@@ -293,9 +319,9 @@ export function applyTheme(html: string, themeId: string) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
 
-    // ── New architecture: apply layout + colors before legacy styles ──
-    if (theme.layout && theme.colors) {
-        applyLayoutTransform(doc, theme.layout, theme.colors);
+    // ── New architecture colors run early (so legacy can refine details) ──
+    const isNewArch = !!(theme.layout && theme.colors);
+    if (isNewArch && theme.colors) {
         applyColors(doc, theme.colors);
     }
 
@@ -522,6 +548,12 @@ export function applyTheme(html: string, themeId: string) {
     }
 
     const container = doc.createElement('div');
+
+    // ── New architecture: layout transforms run LAST to override legacy styles ──
+    if (isNewArch) {
+        applyLayoutTransform(doc, theme.layout!, theme.colors!);
+    }
+
     container.setAttribute('style', style.container);
     container.innerHTML = doc.body.innerHTML;
 
