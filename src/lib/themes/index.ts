@@ -6,7 +6,7 @@ import { designerThemes } from './designer';
 
 export type { Theme };
 export type { ThemeLayout, ThemeColors } from './types';
-export const THEMES: Theme[] = [...classicThemes, ...modernThemes, ...extraThemes, ...designerThemes];
+export const THEMES: Theme[] = [...designerThemes, ...classicThemes, ...modernThemes, ...extraThemes];
 
 export interface ThemeGroup {
   label: string;
